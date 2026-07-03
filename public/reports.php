@@ -15,6 +15,18 @@ if (!hasRole(['admin', 'manager'])) {
     header('Location: pos.php');
     exit;
 }
+
+// Obtener sucursales para el filtro
+$branches = [];
+if ($user['role'] === 'admin') {
+    try {
+        $db = getDB();
+        $stmt = $db->query("SELECT id, name FROM branches WHERE active = 1 ORDER BY name");
+        $branches = $stmt->fetchAll();
+    } catch (Exception $e) {
+        // Error al cargar sucursales
+    }
+}
 ?>
 <!DOCTYPE html>
 <html lang="es">
@@ -28,7 +40,7 @@ if (!hasRole(['admin', 'manager'])) {
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="assets/styles.css">
 </head>
-<body class="min-h-screen">
+<body class="min-h-screen bg-gray-50">
     <!-- Header with gradient -->
     <header class="gradient-header shadow-lg sticky top-0 z-40">
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -89,14 +101,11 @@ if (!hasRole(['admin', 'manager'])) {
                         <select id="branchFilter" class="input-field">
                             <option value="">Todas las sucursales</option>
                             <?php if ($user['role'] === 'admin'): ?>
-                                <?php
-                                $db = getDB();
-                                $stmt = $db->query("SELECT id, name FROM branches WHERE active = 1");
-                                $branches = $stmt->fetchAll();
-                                foreach ($branches as $branch):
-                                ?>
+                                <?php foreach ($branches as $branch): ?>
                                     <option value="<?php echo $branch['id']; ?>"><?php echo htmlspecialchars($branch['name']); ?></option>
                                 <?php endforeach; ?>
+                            <?php else: ?>
+                                <option value="<?php echo $user['branch_id']; ?>" selected><?php echo htmlspecialchars($user['branch_name'] ?? 'Principal'); ?></option>
                             <?php endif; ?>
                         </select>
                     </div>
@@ -133,7 +142,7 @@ if (!hasRole(['admin', 'manager'])) {
                     <p class="text-2xl font-bold text-primary" id="totalSales">$0.00</p>
                 </div>
                 <div class="card">
-                    <p class="text-sm text-gray-600">Total Gastos</p>
+                    <p class="text-sm text-gray-600">Total Gastos (Compras)</p>
                     <p class="text-2xl font-bold text-red-500" id="totalExpenses">$0.00</p>
                 </div>
                 <div class="card">
@@ -146,32 +155,71 @@ if (!hasRole(['admin', 'manager'])) {
                 </div>
             </div>
 
-            <!-- Sales Table -->
+            <!-- Tabs: Ventas y Gastos -->
             <div class="card">
-                <h2 class="text-lg font-semibold mb-4">Ventas</h2>
-                <div class="overflow-x-auto">
-                    <table class="table-base">
-                        <thead>
-                            <tr>
-                                <th>ID</th>
-                                <th>Fecha</th>
-                                <th>Cliente</th>
-                                <th>Método</th>
-                                <th>Total</th>
-                                <th>Usuario</th>
-                            </tr>
-                        </thead>
-                        <tbody id="salesTableBody">
-                            <!-- Sales will be loaded here -->
-                        </tbody>
-                    </table>
+                <div class="border-b border-gray-200">
+                    <nav class="flex -mb-px" aria-label="Tabs">
+                        <button onclick="switchTab('sales')" id="tabSales" class="tab-active py-2 px-4 border-b-2 border-blue-600 text-blue-600 font-medium text-sm">
+                            💰 Ventas
+                        </button>
+                        <button onclick="switchTab('expenses')" id="tabExpenses" class="tab-inactive py-2 px-4 border-b-2 border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300 font-medium text-sm">
+                            📦 Gastos (Compras)
+                        </button>
+                    </nav>
+                </div>
+
+                <!-- Tab: Ventas -->
+                <div id="salesTab" class="mt-4">
+                    <div class="overflow-x-auto">
+                        <table class="table-base">
+                            <thead>
+                                <tr>
+                                    <th>ID</th>
+                                    <th>Fecha</th>
+                                    <th>Cliente</th>
+                                    <th>Método</th>
+                                    <th>Total</th>
+                                    <th>Usuario</th>
+                                    <th>Sucursal</th>
+                                </tr>
+                            </thead>
+                            <tbody id="salesTableBody">
+                                <!-- Sales will be loaded here -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <!-- Tab: Gastos (Compras) -->
+                <div id="expensesTab" class="mt-4 hidden">
+                    <div class="overflow-x-auto">
+                        <table class="table-base">
+                            <thead>
+                                <tr>
+                                    <th>ID</th>
+                                    <th>Fecha</th>
+                                    <th>Producto</th>
+                                    <th>Proveedor</th>
+                                    <th>Cantidad</th>
+                                    <th>Precio Unit.</th>
+                                    <th>Total</th>
+                                    <th>Sucursal</th>
+                                </tr>
+                            </thead>
+                            <tbody id="expensesTableBody">
+                                <!-- Expenses will be loaded here -->
+                            </tbody>
+                        </table>
+                    </div>
                 </div>
             </div>
         </div>
     </main>
 
     <script>
-        // Set default dates (today)
+        let currentTab = 'sales';
+
+        // Set default dates
         document.addEventListener('DOMContentLoaded', function() {
             const today = new Date().toISOString().split('T')[0];
             const firstDayOfMonth = new Date(new Date().getFullYear(), new Date().getMonth(), 1).toISOString().split('T')[0];
@@ -181,6 +229,28 @@ if (!hasRole(['admin', 'manager'])) {
             
             loadReports();
         });
+
+        function switchTab(tab) {
+            currentTab = tab;
+            
+            // Update tab styles
+            const tabSales = document.getElementById('tabSales');
+            const tabExpenses = document.getElementById('tabExpenses');
+            const salesTab = document.getElementById('salesTab');
+            const expensesTab = document.getElementById('expensesTab');
+            
+            if (tab === 'sales') {
+                tabSales.className = 'tab-active py-2 px-4 border-b-2 border-blue-600 text-blue-600 font-medium text-sm';
+                tabExpenses.className = 'tab-inactive py-2 px-4 border-b-2 border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300 font-medium text-sm';
+                salesTab.classList.remove('hidden');
+                expensesTab.classList.add('hidden');
+            } else {
+                tabExpenses.className = 'tab-active py-2 px-4 border-b-2 border-blue-600 text-blue-600 font-medium text-sm';
+                tabSales.className = 'tab-inactive py-2 px-4 border-b-2 border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300 font-medium text-sm';
+                expensesTab.classList.remove('hidden');
+                salesTab.classList.add('hidden');
+            }
+        }
 
         async function loadReports() {
             const dateFrom = document.getElementById('dateFrom').value;
@@ -203,10 +273,11 @@ if (!hasRole(['admin', 'manager'])) {
                 const data = await response.json();
 
                 if (data.success) {
-                    renderSales(data.sales);
+                    renderSales(data.sales || []);
+                    renderExpenses(data.expenses || []);
                     updateSummary(data.summary);
                 } else {
-                    alert('Error al cargar reportes');
+                    alert('Error al cargar reportes: ' + (data.error || 'Error desconocido'));
                 }
             } catch (error) {
                 console.error('Error:', error);
@@ -217,8 +288,8 @@ if (!hasRole(['admin', 'manager'])) {
         function renderSales(sales) {
             const tbody = document.getElementById('salesTableBody');
 
-            if (sales.length === 0) {
-                tbody.innerHTML = '<tr><td colspan="6" class="text-center text-gray-500 py-4">No se encontraron ventas</td></tr>';
+            if (!sales || sales.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="7" class="text-center text-gray-500 py-4">No se encontraron ventas</td></tr>';
                 return;
             }
 
@@ -230,6 +301,29 @@ if (!hasRole(['admin', 'manager'])) {
                     <td><span class="badge badge-gray">${translatePaymentMethod(sale.payment_method)}</span></td>
                     <td class="num font-semibold">$${parseFloat(sale.total).toFixed(2)}</td>
                     <td>${escapeHtml(sale.username || 'N/A')}</td>
+                    <td>${escapeHtml(sale.branch_name || 'N/A')}</td>
+                </tr>
+            `).join('');
+        }
+
+        function renderExpenses(expenses) {
+            const tbody = document.getElementById('expensesTableBody');
+
+            if (!expenses || expenses.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="8" class="text-center text-gray-500 py-4">No se encontraron gastos (compras)</td></tr>';
+                return;
+            }
+
+            tbody.innerHTML = expenses.map(expense => `
+                <tr>
+                    <td class="font-mono">#${expense.id}</td>
+                    <td>${formatDate(expense.created_at)}</td>
+                    <td class="font-medium">${escapeHtml(expense.product_name)}</td>
+                    <td>${escapeHtml(expense.supplier || 'N/A')}</td>
+                    <td class="num">${expense.quantity}</td>
+                    <td class="num">$${parseFloat(expense.unit_price).toFixed(2)}</td>
+                    <td class="num font-semibold text-red-600">$${parseFloat(expense.total_price).toFixed(2)}</td>
+                    <td>${escapeHtml(expense.branch_name || 'N/A')}</td>
                 </tr>
             `).join('');
         }
@@ -247,6 +341,7 @@ if (!hasRole(['admin', 'manager'])) {
         }
 
         function formatDate(dateString) {
+            if (!dateString) return '-';
             const date = new Date(dateString);
             return date.toLocaleDateString('es-PY') + ' ' + date.toLocaleTimeString('es-PY', { hour: '2-digit', minute: '2-digit' });
         }
@@ -274,6 +369,7 @@ if (!hasRole(['admin', 'manager'])) {
         }
 
         function escapeHtml(text) {
+            if (!text) return '';
             const div = document.createElement('div');
             div.textContent = text;
             return div.innerHTML;
