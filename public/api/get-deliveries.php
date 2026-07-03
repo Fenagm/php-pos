@@ -22,7 +22,7 @@ try {
     $user = getCurrentUser();
     
     $date = $_GET['date'] ?? date('Y-m-d');
-    $status = $_GET['status'] ?? '';
+    $status = isset($_GET['status']) && $_GET['status'] !== '' ? $_GET['status'] : null;
     
     $sql = "
         SELECT d.*, v.name as vehicle_name, b.name as branch_name
