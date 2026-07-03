@@ -82,10 +82,31 @@ try {
     $stmt->execute($itemsParams);
     $totalItems = $stmt->fetch()['total_items'];
 
+    // Obtener total de gastos
+    $expensesSql = "
+        SELECT COALESCE(SUM(amount), 0) as total_expenses
+        FROM expenses
+        WHERE DATE(created_at) BETWEEN ? AND ?
+    ";
+    $expensesParams = [$dateFrom, $dateTo];
+    
+    if ($branchId) {
+        $expensesSql .= " AND branch_id = ?";
+        $expensesParams[] = $branchId;
+    } elseif ($user['branch_id']) {
+        $expensesSql .= " AND (branch_id = ? OR branch_id IS NULL)";
+        $expensesParams[] = $user['branch_id'];
+    }
+
+    $stmt = $db->prepare($expensesSql);
+    $stmt->execute($expensesParams);
+    $totalExpenses = $stmt->fetch()['total_expenses'];
+
     // Calcular resumen
     $totalSales = array_sum(array_column($sales, 'total'));
     $summary = [
         'totalSales' => $totalSales,
+        'totalExpenses' => floatval($totalExpenses),
         'totalTransactions' => count($sales),
         'totalItems' => intval($totalItems)
     ];

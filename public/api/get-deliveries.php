@@ -62,7 +62,12 @@ try {
         $d['id'] = intval($d['id']);
         $d['vehicle_id'] = $d['vehicle_id'] !== null ? intval($d['vehicle_id']) : null;
         $d['branch_id'] = $d['branch_id'] !== null ? intval($d['branch_id']) : null;
-        $d['total_bultos'] = intval($d['total_bultos']);
+        $d['total_cajones'] = isset($d['total_cajones']) ? intval($d['total_cajones']) : 0;
+        $d['total_pallets'] = isset($d['total_pallets']) ? intval($d['total_pallets']) : 0;
+        // Mantener compatibilidad con total_bultos si existe
+        if (isset($d['total_bultos'])) {
+            $d['total_bultos'] = intval($d['total_bultos']);
+        }
         return $d;
     }, $deliveries);
 

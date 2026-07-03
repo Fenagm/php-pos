@@ -136,10 +136,15 @@ if (!hasRole(['admin', 'manager'])) {
             <!-- Vehicles -->
             <div class="card">
                 <div class="flex justify-between items-center mb-6">
-                    <h2 class="text-2xl font-bold text-gray-800">Vehículos</h2>
+                    <h2 class="text-2xl font-bold text-gray-800">Vehículos y Capacidad</h2>
                     <button onclick="openVehicleModal()" class="btn-primary">
                         + Nuevo Vehículo
                     </button>
+                </div>
+
+                <!-- Grid de vehículos con capacidad en cajones y pallets -->
+                <div id="vehiclesGrid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mb-6">
+                    <!-- Se carga dinámicamente -->
                 </div>
 
                 <div class="overflow-x-auto">
@@ -148,7 +153,10 @@ if (!hasRole(['admin', 'manager'])) {
                             <tr>
                                 <th>Nombre</th>
                                 <th>Patente</th>
-                                <th>Capacidad</th>
+                                <th>Cap. Cajones</th>
+                                <th>Cap. Pallets</th>
+                                <th>Carga Actual</th>
+                                <th>Disponible</th>
                                 <th>Estado</th>
                                 <th>Acciones</th>
                             </tr>
@@ -175,15 +183,32 @@ if (!hasRole(['admin', 'manager'])) {
                     <input type="text" id="vehicleName" class="input-field" required>
                 </div>
                 
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-2">Patente</label>
+                    <input type="text" id="vehicleLicense" class="input-field">
+                </div>
+                
                 <div class="grid grid-cols-2 gap-4">
                     <div>
-                        <label class="block text-sm font-medium text-gray-700 mb-2">Patente</label>
-                        <input type="text" id="vehicleLicense" class="input-field">
+                        <label class="block text-sm font-medium text-gray-700 mb-2">
+                            Capacidad (Cajones) *
+                            <span class="text-xs text-gray-400">(1 cajón = 360 huevos)</span>
+                        </label>
+                        <input type="number" id="vehicleCapacityCajones" class="input-field" min="0" required>
                     </div>
                     <div>
-                        <label class="block text-sm font-medium text-gray-700 mb-2">Capacidad (bultos)</label>
-                        <input type="number" id="vehicleCapacity" class="input-field" min="0">
+                        <label class="block text-sm font-medium text-gray-700 mb-2">
+                            Capacidad (Pallets) *
+                            <span class="text-xs text-gray-400">(1 pallet = 40 cajones)</span>
+                        </label>
+                        <input type="number" id="vehicleCapacityPallets" class="input-field" min="0" required>
                     </div>
+                </div>
+                
+                <div class="bg-blue-50 rounded-lg p-4">
+                    <p class="text-sm text-blue-800">
+                        📦 Capacidad total equivalente: <span id="totalCapacityDisplay">0</span> cajones
+                    </p>
                 </div>
                 
                 <div>
@@ -251,7 +276,19 @@ if (!hasRole(['admin', 'manager'])) {
             <?php if ($user['role'] === 'admin'): ?>
                 loadBranches();
             <?php endif; ?>
+            
+            // Actualizar visualización de capacidad en el modal
+            document.getElementById('vehicleCapacityCajones').addEventListener('input', updateCapacityDisplay);
+            document.getElementById('vehicleCapacityPallets').addEventListener('input', updateCapacityDisplay);
         });
+
+        // Actualizar display de capacidad total
+        function updateCapacityDisplay() {
+            const cajones = parseInt(document.getElementById('vehicleCapacityCajones').value) || 0;
+            const pallets = parseInt(document.getElementById('vehicleCapacityPallets').value) || 0;
+            const total = cajones + (pallets * 40);
+            document.getElementById('totalCapacityDisplay').textContent = total.toLocaleString();
+        }
 
         // Load Branches (Admin only)
         async function loadBranches() {
@@ -365,53 +402,170 @@ if (!hasRole(['admin', 'manager'])) {
                 'cancelled': 'Cancelado'
             };
 
-            tbody.innerHTML = deliveriesToRender.map(delivery => `
-                <tr>
-                    <td>${new Date(delivery.delivery_date).toLocaleDateString()}</td>
-                    <td class="font-medium">${escapeHtml(delivery.customer_name)}</td>
-                    <td>${escapeHtml(delivery.customer_address || '-')}</td>
-                    <td>${escapeHtml(delivery.customer_phone || '-')}</td>
-                    <td class="num">${delivery.total_bultos || '-'}</td>
-                    <td>${escapeHtml(delivery.vehicle_name || 'Sin asignar')}</td>
-                    <td>
-                        <span class="badge ${statusLabels[delivery.status] || 'badge-gray'}">
-                            ${statusNames[delivery.status] || delivery.status}
-                        </span>
-                    </td>
-                    <td>
-                        <button onclick="editDelivery(${delivery.id})" class="text-blue-600 hover:text-blue-800 text-sm">
-                            Actualizar
-                        </button>
-                    </td>
-                </tr>
-            `).join('');
+            tbody.innerHTML = deliveriesToRender.map(delivery => {
+                // Mostrar unidades en cajones/pallets
+                let unitsText = '';
+                if (delivery.total_cajones > 0 && delivery.total_pallets > 0) {
+                    unitsText = `${delivery.total_cajones} caj, ${delivery.total_pallets} pal`;
+                } else if (delivery.total_cajones > 0) {
+                    unitsText = `${delivery.total_cajones} cajones`;
+                } else if (delivery.total_pallets > 0) {
+                    unitsText = `${delivery.total_pallets} pallets`;
+                } else if (delivery.total_bultos > 0) {
+                    unitsText = `${delivery.total_bultos} bultos`;
+                } else {
+                    unitsText = '-';
+                }
+                
+                return `
+                    <tr>
+                        <td>${new Date(delivery.delivery_date).toLocaleDateString()}</td>
+                        <td class="font-medium">${escapeHtml(delivery.customer_name)}</td>
+                        <td>${escapeHtml(delivery.customer_address || '-')}</td>
+                        <td>${escapeHtml(delivery.customer_phone || '-')}</td>
+                        <td class="num font-mono">${unitsText}</td>
+                        <td>${escapeHtml(delivery.vehicle_name || 'Sin asignar')}</td>
+                        <td>
+                            <span class="badge ${statusLabels[delivery.status] || 'badge-gray'}">
+                                ${statusNames[delivery.status] || delivery.status}
+                            </span>
+                        </td>
+                        <td>
+                            <button onclick="editDelivery(${delivery.id})" class="text-blue-600 hover:text-blue-800 text-sm">
+                                Actualizar
+                            </button>
+                        </td>
+                    </tr>
+                `;
+            }).join('');
         }
 
         function renderVehicles(vehiclesToRender) {
             const tbody = document.getElementById('vehiclesTableBody');
             
             if (vehiclesToRender.length === 0) {
-                tbody.innerHTML = '<tr><td colspan="5" class="text-center text-gray-500 py-4">No se encontraron vehículos</td></tr>';
+                tbody.innerHTML = '<tr><td colspan="8" class="text-center text-gray-500 py-4">No se encontraron vehículos</td></tr>';
                 return;
             }
 
-            tbody.innerHTML = vehiclesToRender.map(vehicle => `
-                <tr>
-                    <td class="font-medium">${escapeHtml(vehicle.name)}</td>
-                    <td>${escapeHtml(vehicle.license_plate || '-')}</td>
-                    <td class="num">${vehicle.capacity}</td>
-                    <td>
-                        <span class="badge ${vehicle.active ? 'badge-green' : 'badge-gray'}">
-                            ${vehicle.active ? 'Activo' : 'Inactivo'}
-                        </span>
-                    </td>
-                    <td>
-                        <button onclick="editVehicle(${vehicle.id})" class="text-blue-600 hover:text-blue-800 text-sm mr-2">
-                            Editar
-                        </button>
-                    </td>
-                </tr>
-            `).join('');
+            tbody.innerHTML = vehiclesToRender.map(vehicle => {
+                const totalCapacity = (vehicle.capacity_cajones || 0) + ((vehicle.capacity_pallets || 0) * 40);
+                const totalUsed = (vehicle.current_cajones || 0) + ((vehicle.current_pallets || 0) * 40);
+                const available = totalCapacity - totalUsed;
+                const loadPercent = totalCapacity > 0 ? Math.round((totalUsed / totalCapacity) * 100) : 0;
+                const loadColor = loadPercent >= 90 ? 'text-red-600' : 
+                                 loadPercent >= 70 ? 'text-yellow-600' : 'text-green-600';
+                
+                // Determinar si está usando cajones o pallets
+                const hasCajones = (vehicle.capacity_cajones || 0) > 0;
+                const hasPallets = (vehicle.capacity_pallets || 0) > 0;
+                const capacityText = [];
+                if (hasCajones) capacityText.push(`${vehicle.capacity_cajones}`);
+                if (hasPallets) capacityText.push(`${vehicle.capacity_pallets}`);
+                
+                let currentText = '';
+                if ((vehicle.current_cajones || 0) > 0 && (vehicle.current_pallets || 0) > 0) {
+                    currentText = `${vehicle.current_cajones} caj + ${vehicle.current_pallets} pal`;
+                } else if ((vehicle.current_cajones || 0) > 0) {
+                    currentText = `${vehicle.current_cajones} caj`;
+                } else if ((vehicle.current_pallets || 0) > 0) {
+                    currentText = `${vehicle.current_pallets} pal`;
+                } else {
+                    currentText = '0';
+                }
+                
+                return `
+                    <tr>
+                        <td class="font-medium">${escapeHtml(vehicle.name)}</td>
+                        <td>${escapeHtml(vehicle.license_plate || '-')}</td>
+                        <td class="num">${capacityText.join(' | ') || '-'}</td>
+                        <td class="num ${loadColor}">${currentText}</td>
+                        <td class="num ${available > 0 ? 'text-green-600' : 'text-red-600'}">${available}</td>
+                        <td>
+                            <span class="badge ${vehicle.active ? 'badge-green' : 'badge-gray'}">
+                                ${vehicle.active ? 'Activo' : 'Inactivo'}
+                            </span>
+                        </td>
+                        <td>
+                            <button onclick="editVehicle(${vehicle.id})" class="text-blue-600 hover:text-blue-800 text-sm mr-2">
+                                Editar
+                            </button>
+                            <button onclick="viewVehicleDeliveries(${vehicle.id})" class="text-green-600 hover:text-green-800 text-sm">
+                                Ver Entregas
+                            </button>
+                        </td>
+                    </tr>
+                `;
+            }).join('');
+        }
+        
+        // Renderizar grid de vehículos con capacidad
+        function renderVehiclesGrid(vehiclesToRender) {
+            const container = document.getElementById('vehiclesGrid');
+            if (!container) return;
+            
+            if (vehiclesToRender.length === 0) {
+                container.innerHTML = '<p class="text-gray-500 text-center col-span-3">No hay vehículos registrados</p>';
+                return;
+            }
+            
+            container.innerHTML = vehiclesToRender.map(vehicle => {
+                const totalCapacity = (vehicle.capacity_cajones || 0) + ((vehicle.capacity_pallets || 0) * 40);
+                const totalUsed = (vehicle.current_cajones || 0) + ((vehicle.current_pallets || 0) * 40);
+                const available = totalCapacity - totalUsed;
+                const loadPercent = totalCapacity > 0 ? Math.round((totalUsed / totalCapacity) * 100) : 0;
+                
+                const statusColor = loadPercent >= 90 ? 'bg-red-500' : 
+                                   loadPercent >= 70 ? 'bg-yellow-500' : 'bg-green-500';
+                const statusText = loadPercent >= 90 ? 'Casi lleno' : 
+                                  loadPercent >= 70 ? 'Capacidad media' : 'Disponible';
+                
+                // Determinar si está usando cajones o pallets
+                const hasCajones = (vehicle.capacity_cajones || 0) > 0;
+                const hasPallets = (vehicle.capacity_pallets || 0) > 0;
+                const capacityText = [];
+                if (hasCajones) capacityText.push(`${vehicle.capacity_cajones} cajones`);
+                if (hasPallets) capacityText.push(`${vehicle.capacity_pallets} pallets`);
+                
+                return `
+                    <div class="card-accent p-4">
+                        <div class="flex justify-between items-start mb-2">
+                            <div>
+                                <h3 class="font-bold text-gray-800">${escapeHtml(vehicle.name)}</h3>
+                                <p class="text-sm text-gray-500">${escapeHtml(vehicle.license_plate || 'Sin patente')}</p>
+                            </div>
+                            <span class="badge ${vehicle.active ? 'badge-green' : 'badge-gray'}">
+                                ${vehicle.active ? 'Activo' : 'Inactivo'}
+                            </span>
+                        </div>
+                        <div class="mt-3">
+                            <div class="flex justify-between text-sm mb-1">
+                                <span class="text-gray-600">Capacidad</span>
+                                <span class="font-mono text-sm">
+                                    ${capacityText.join(' | ')}
+                                    <span class="text-gray-400 text-xs">(${totalCapacity} cajones eq.)</span>
+                                </span>
+                            </div>
+                            <div class="w-full bg-gray-200 rounded-full h-2.5">
+                                <div class="${statusColor} h-2.5 rounded-full transition-all duration-500" 
+                                     style="width: ${Math.min(loadPercent, 100)}%"></div>
+                            </div>
+                            <div class="flex justify-between text-xs mt-1">
+                                <span class="text-gray-500">${statusText}</span>
+                                <span class="font-mono ${available > 0 ? 'text-green-600' : 'text-red-600'}">
+                                    ${available} cajones disponibles
+                                </span>
+                            </div>
+                            ${(vehicle.current_cajones || 0) > 0 || (vehicle.current_pallets || 0) > 0 ? `
+                                <div class="flex gap-2 text-xs text-gray-500 mt-2">
+                                    ${(vehicle.current_cajones || 0) > 0 ? `<span>📦 ${vehicle.current_cajones} cajones</span>` : ''}
+                                    ${(vehicle.current_pallets || 0) > 0 ? `<span>📋 ${vehicle.current_pallets} pallets</span>` : ''}
+                                </div>
+                            ` : ''}
+                        </div>
+                    </div>
+                `;
+            }).join('');
         }
 
         function openVehicleModal() {
@@ -434,8 +588,10 @@ if (!hasRole(['admin', 'manager'])) {
             document.getElementById('vehicleId').value = vehicle.id;
             document.getElementById('vehicleName').value = vehicle.name;
             document.getElementById('vehicleLicense').value = vehicle.license_plate || '';
-            document.getElementById('vehicleCapacity').value = vehicle.capacity;
+            document.getElementById('vehicleCapacityCajones').value = vehicle.capacity_cajones || 0;
+            document.getElementById('vehicleCapacityPallets').value = vehicle.capacity_pallets || 0;
             document.getElementById('vehicleActive').checked = vehicle.active;
+            updateCapacityDisplay();
             document.getElementById('vehicleModal').classList.remove('hidden');
         }
 
@@ -446,7 +602,8 @@ if (!hasRole(['admin', 'manager'])) {
                 id: document.getElementById('vehicleId').value || null,
                 name: document.getElementById('vehicleName').value.trim(),
                 licensePlate: document.getElementById('vehicleLicense').value.trim(),
-                capacity: parseInt(document.getElementById('vehicleCapacity').value) || 0,
+                capacityCajones: parseInt(document.getElementById('vehicleCapacityCajones').value) || 0,
+                capacityPallets: parseInt(document.getElementById('vehicleCapacityPallets').value) || 0,
                 active: document.getElementById('vehicleActive').checked
             };
 
@@ -481,6 +638,15 @@ if (!hasRole(['admin', 'manager'])) {
             document.getElementById('deliveryVehicle').value = delivery.vehicle_id || '';
             document.getElementById('deliveryNotes').value = delivery.notes || '';
             document.getElementById('deliveryModal').classList.remove('hidden');
+        }
+
+        // Ver entregas de un vehículo específico
+        function viewVehicleDeliveries(vehicleId) {
+            const vehicle = vehicles.find(v => v.id === vehicleId);
+            if (!vehicle) return;
+            
+            const vehicleDeliveries = deliveries.filter(d => d.vehicle_id === vehicleId);
+            alert(`Vehículo: ${vehicle.name}\n\nEntregas asignadas hoy: ${vehicleDeliveries.length}`);
         }
 
         function closeDeliveryModal() {

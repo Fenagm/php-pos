@@ -118,6 +118,29 @@ try {
             echo json_encode(['success' => true, 'isOpen' => false]);
         }
         
+    } elseif ($action === 'get_sales') {
+        // Obtener resumen de ventas en efectivo para una sesión
+        $sessionId = intval($_GET['sessionId'] ?? 0);
+        
+        $stmt = $db->prepare("SELECT * FROM cash_sessions WHERE id = ? AND status = 'open'");
+        $stmt->execute([$sessionId]);
+        $session = $stmt->fetch();
+        
+        if ($session) {
+            $stmt = $db->prepare("SELECT COALESCE(SUM(total), 0) as total_cash_sales FROM sales WHERE session_id = ? AND payment_method = 'cash'");
+            $stmt->execute([$sessionId]);
+            $cashSales = floatval($stmt->fetch()['total_cash_sales']);
+            
+            echo json_encode([
+                'success' => true,
+                'isOpen' => true,
+                'session' => $session,
+                'cashSales' => $cashSales
+            ]);
+        } else {
+            echo json_encode(['success' => true, 'isOpen' => false]);
+        }
+        
     } else {
         echo json_encode(['success' => false, 'error' => 'Acción no válida']);
     }

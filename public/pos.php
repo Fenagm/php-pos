@@ -157,12 +157,24 @@ $user = getCurrentUser();
                     <!-- Payment Method -->
                     <div class="mt-4">
                         <label class="block text-sm font-medium text-gray-700 mb-2">Método de Pago</label>
-                        <select id="paymentMethod" class="input-field">
-                            <option value="cash">Efectivo</option>
-                            <option value="card">Tarjeta</option>
-                            <option value="transfer">Transferencia</option>
-                            <option value="account">Cuenta Corriente</option>
-                        </select>
+                        <div class="grid grid-cols-3 gap-2">
+                            <label class="flex items-center gap-2 p-2 border rounded-lg cursor-pointer hover:bg-gray-50">
+                                <input type="radio" name="paymentMethod" value="cash" checked class="w-4 h-4 text-blue-600">
+                                <span>💰 Efectivo</span>
+                            </label>
+                            <label class="flex items-center gap-2 p-2 border rounded-lg cursor-pointer hover:bg-gray-50">
+                                <input type="radio" name="paymentMethod" value="card" class="w-4 h-4 text-blue-600">
+                                <span>💳 Tarjeta</span>
+                            </label>
+                            <label class="flex items-center gap-2 p-2 border rounded-lg cursor-pointer hover:bg-gray-50">
+                                <input type="radio" name="paymentMethod" value="transfer" class="w-4 h-4 text-blue-600">
+                                <span>🏦 Transferencia</span>
+                            </label>
+                            <label class="flex items-center gap-2 p-2 border rounded-lg cursor-pointer hover:bg-gray-50 col-span-3">
+                                <input type="radio" name="paymentMethod" value="account" class="w-4 h-4 text-blue-600">
+                                <span>📋 Cuenta Corriente</span>
+                            </label>
+                        </div>
                     </div>
 
                     <!-- Action Buttons -->
@@ -215,6 +227,26 @@ $user = getCurrentUser();
                     <button onclick="closeCashRegister()" class="btn-secondary w-full">Cerrar Caja</button>
                 </div>
             </div>
+        </div>
+    </div>
+
+    <!-- Success Modal -->
+    <div id="successModal" class="modal-backdrop hidden">
+        <div class="card w-full max-w-md text-center">
+            <div class="text-6xl mb-4">✅</div>
+            <h3 class="text-2xl font-bold text-green-600 mb-2">¡Venta Exitosa!</h3>
+            <p id="successMessage" class="text-gray-600 mb-6">La venta se ha procesado correctamente.</p>
+            <button onclick="closeSuccessModal()" class="btn-primary w-full">Aceptar</button>
+        </div>
+    </div>
+
+    <!-- Error Modal -->
+    <div id="errorModal" class="modal-backdrop hidden">
+        <div class="card w-full max-w-md text-center">
+            <div class="text-6xl mb-4">❌</div>
+            <h3 class="text-2xl font-bold text-red-600 mb-2">Error</h3>
+            <p id="errorMessage" class="text-gray-600 mb-6">Ha ocurrido un error.</p>
+            <button onclick="closeErrorModal()" class="btn-primary w-full">Aceptar</button>
         </div>
     </div>
 
@@ -343,8 +375,6 @@ $user = getCurrentUser();
                         </div>
                         <div class="text-right">
                             <p class="price text-lg font-bold text-primary">$${product.retailPrice.toFixed(2)}</p>
-                            ${product.wholesalePrice !== product.retailPrice ? 
-                                `<p class="text-xs text-gray-500">May: $${product.wholesalePrice.toFixed(2)}</p>` : ''}
                         </div>
                     </div>
                 </div>
@@ -518,17 +548,17 @@ $user = getCurrentUser();
         // Process Sale
         async function processSale() {
             if (cart.length === 0) {
-                alert('El carrito está vacío');
+                showErrorModal('El carrito está vacío');
                 return;
             }
 
             const total = cart.reduce((sum, item) => sum + (item.price * item.quantity), 0);
-            const paymentMethod = document.getElementById('paymentMethod').value;
+            const paymentMethod = document.querySelector('input[name="paymentMethod"]:checked').value;
             const customerSelect = document.getElementById('customerSelect');
             const customerId = customerSelect.value ? parseInt(customerSelect.value) : null;
 
             if (paymentMethod === 'account' && !customerId) {
-                alert('Debe seleccionar un cliente para venta a cuenta corriente');
+                showErrorModal('Debe seleccionar un cliente para venta a cuenta corriente');
                 return;
             }
 
@@ -560,54 +590,52 @@ $user = getCurrentUser();
                 if (data.success) {
                     const saleId = data.saleId;
                     
-                    // Ask if this is for delivery
-                    if (confirm('¿Esta venta es para envío?')) {
-                        const selectedCustomer = customers.find(c => c.id === customerId);
-                        const deliveryDate = prompt('Fecha de entrega (YYYY-MM-DD):', new Date().toISOString().split('T')[0]);
+                    // Ask if this is for delivery (no confirm, just check customer has address)
+                    const selectedCustomer = customers.find(c => c.id === customerId);
+                    const hasAddress = selectedCustomer && selectedCustomer.address;
+                    
+                    if (hasAddress) {
+                        const deliveryDate = new Date().toISOString().split('T')[0];
                         
-                        if (deliveryDate) {
-                            const deliveryData = {
-                                saleId: saleId,
-                                customerId: customerId || null,
-                                customerName: selectedCustomer ? selectedCustomer.name : '',
-                                customerAddress: selectedCustomer ? selectedCustomer.address : '',
-                                customerPhone: selectedCustomer ? selectedCustomer.phone : '',
-                                deliveryDate: deliveryDate,
-                                totalBultos: totalBultos
-                            };
+                        const deliveryData = {
+                            saleId: saleId,
+                            customerId: customerId || null,
+                            customerName: selectedCustomer ? selectedCustomer.name : '',
+                            customerAddress: selectedCustomer ? selectedCustomer.address : '',
+                            customerPhone: selectedCustomer ? selectedCustomer.phone : '',
+                            deliveryDate: deliveryDate,
+                            totalBultos: totalBultos
+                        };
+                        
+                        try {
+                            const deliveryResponse = await fetch('api/create-delivery.php', {
+                                method: 'POST',
+                                headers: { 'Content-Type': 'application/json' },
+                                body: JSON.stringify(deliveryData)
+                            });
+                            const deliveryData = await deliveryResponse.json();
                             
-                            try {
-                                const deliveryResponse = await fetch('api/create-delivery.php', {
-                                    method: 'POST',
-                                    headers: { 'Content-Type': 'application/json' },
-                                    body: JSON.stringify(deliveryData)
-                                });
-                                const deliveryData = await deliveryResponse.json();
-                                
-                                if (deliveryData.success) {
-                                    alert('Venta realizada con éxito y entrega programada!');
-                                } else {
-                                    alert('Venta realizada pero hubo un error al programar la entrega: ' + deliveryData.error);
-                                }
-                            } catch (error) {
-                                console.error('Delivery error:', error);
-                                alert('Venta realizada pero hubo un error al programar la entrega');
+                            if (deliveryData.success) {
+                                showSuccessModal('¡Venta realizada con éxito y entrega programada!');
+                            } else {
+                                showSuccessModal('Venta realizada con éxito!');
                             }
-                        } else {
-                            alert('Venta realizada con éxito!');
+                        } catch (error) {
+                            console.error('Delivery error:', error);
+                            showSuccessModal('¡Venta realizada con éxito!');
                         }
                     } else {
-                        alert('Venta realizada con éxito!');
+                        showSuccessModal('¡Venta realizada con éxito!');
                     }
                     
                     clearCart();
                     loadProducts(); // Reload to update stock
                 } else {
-                    alert('Error: ' + data.error);
+                    showErrorModal('Error: ' + data.error);
                 }
             } catch (error) {
                 console.error('Error:', error);
-                alert('Error de conexión al procesar la venta');
+                showErrorModal('Error de conexión al procesar la venta');
             }
         }
 
@@ -615,7 +643,7 @@ $user = getCurrentUser();
         function clearCart() {
             cart = [];
             renderCart();
-            document.getElementById('paymentMethod').value = 'cash';
+            document.querySelector('input[name="paymentMethod"][value="cash"]').checked = true;
             document.getElementById('customerSelect').value = '';
         }
 
@@ -642,6 +670,25 @@ $user = getCurrentUser();
         // Utility: Show Error
         function showError(message) {
             alert(message);
+        }
+
+        // Modal functions for success and error
+        function showSuccessModal(message) {
+            document.getElementById('successMessage').textContent = message;
+            document.getElementById('successModal').classList.remove('hidden');
+        }
+
+        function closeSuccessModal() {
+            document.getElementById('successModal').classList.add('hidden');
+        }
+
+        function showErrorModal(message) {
+            document.getElementById('errorMessage').textContent = message;
+            document.getElementById('errorModal').classList.remove('hidden');
+        }
+
+        function closeErrorModal() {
+            document.getElementById('errorModal').classList.add('hidden');
         }
 
         // Cash Register Modal Functions
@@ -711,14 +758,34 @@ $user = getCurrentUser();
 
         async function closeCashRegister() {
             if (!cashSessionId) {
-                alert('No hay sesión de caja abierta');
+                showErrorModal('No hay sesión de caja abierta');
                 return;
             }
             
-            if (!confirm('¿Confirmar cierre de caja?')) return;
-            
             const finalCash = parseFloat(document.getElementById('finalCash').value) || 0;
             const notes = document.getElementById('closeNotes').value.trim();
+            
+            // Get cash sales summary before closing
+            try {
+                const response = await fetch(`api/open-cash-register.php?action=get_sales&sessionId=${cashSessionId}`);
+                const data = await response.json();
+                
+                if (data.success && data.isOpen) {
+                    const expectedCash = data.session.initial_cash + data.cashSales;
+                    
+                    const summary = `Resumen de Caja:
+─────────────────────
+Efectivo Inicial: $${data.session.initial_cash.toFixed(2)}
+Ventas en Efectivo: $${data.cashSales.toFixed(2)}
+Efectivo Esperado: $${expectedCash.toFixed(2)}
+Efectivo Contado: $${finalCash.toFixed(2)}
+${finalCash >= expectedCash ? 'Sobrante' : 'Faltante'}: $${Math.abs(finalCash - expectedCash).toFixed(2)}`;
+                    
+                    if (!confirm(summary + '\n\n¿Confirmar cierre?')) return;
+                }
+            } catch (error) {
+                console.error('Error getting cash sales:', error);
+            }
             
             try {
                 const response = await fetch('api/open-cash-register.php', {
@@ -735,18 +802,18 @@ $user = getCurrentUser();
                 
                 if (data.success) {
                     const diffText = data.difference >= 0 ? 'Sobrante' : 'Faltante';
-                    alert(`Caja cerrada.\nEfectivo esperado: $${data.expectedCash.toFixed(2)} (inicial $${data.initialCash.toFixed(2)} + ventas efectivo $${data.cashSales.toFixed(2)})\n${diffText}: $${Math.abs(data.difference).toFixed(2)}`);
+                    showSuccessModal(`Caja cerrada.\nEfectivo esperado: $${data.expectedCash.toFixed(2)}\n${diffText}: $${Math.abs(data.difference).toFixed(2)}`);
                     cashSessionId = null;
                     closeCashRegisterModal();
                     // Show cash register alert again
                     const alert = document.querySelector('.bg-amber-50');
                     if (alert) alert.style.display = 'flex';
                 } else {
-                    alert('Error: ' + data.error);
+                    showErrorModal('Error: ' + data.error);
                 }
             } catch (error) {
                 console.error('Error:', error);
-                alert('Error de conexión');
+                showErrorModal('Error de conexión');
             }
         }
     </script>

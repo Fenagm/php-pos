@@ -127,18 +127,22 @@ if (!hasRole(['admin', 'manager'])) {
             </div>
 
             <!-- Summary Cards -->
-            <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
                 <div class="card">
                     <p class="text-sm text-gray-600">Total Ventas</p>
                     <p class="text-2xl font-bold text-primary" id="totalSales">$0.00</p>
                 </div>
                 <div class="card">
-                    <p class="text-sm text-gray-600">Cantidad Ventas</p>
-                    <p class="text-2xl font-bold" id="totalTransactions">0</p>
+                    <p class="text-sm text-gray-600">Total Gastos</p>
+                    <p class="text-2xl font-bold text-red-500" id="totalExpenses">$0.00</p>
                 </div>
                 <div class="card">
-                    <p class="text-sm text-gray-600">Total Items</p>
-                    <p class="text-2xl font-bold" id="totalItems">0</p>
+                    <p class="text-sm text-gray-600">Diferencial</p>
+                    <p class="text-2xl font-bold" id="differential">$0.00</p>
+                </div>
+                <div class="card">
+                    <p class="text-sm text-gray-600">Cantidad Ventas</p>
+                    <p class="text-2xl font-bold" id="totalTransactions">0</p>
                 </div>
             </div>
 
@@ -231,9 +235,15 @@ if (!hasRole(['admin', 'manager'])) {
         }
 
         function updateSummary(summary) {
-            document.getElementById('totalSales').textContent = `$${parseFloat(summary.totalSales || 0).toFixed(2)}`;
+            const totalSales = parseFloat(summary.totalSales || 0);
+            const totalExpenses = parseFloat(summary.totalExpenses || 0);
+            const differential = totalSales - totalExpenses;
+            
+            document.getElementById('totalSales').textContent = `$${totalSales.toFixed(2)}`;
+            document.getElementById('totalExpenses').textContent = `$${totalExpenses.toFixed(2)}`;
+            document.getElementById('differential').textContent = `$${differential.toFixed(2)}`;
+            document.getElementById('differential').className = `text-2xl font-bold ${differential >= 0 ? 'text-green-600' : 'text-red-600'}`;
             document.getElementById('totalTransactions').textContent = summary.totalTransactions || 0;
-            document.getElementById('totalItems').textContent = summary.totalItems || 0;
         }
 
         function formatDate(dateString) {
