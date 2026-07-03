@@ -59,6 +59,19 @@ CREATE TABLE IF NOT EXISTS products (
   FOREIGN KEY (branch_id) REFERENCES branches(id) ON DELETE SET NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
+-- Create product presentations table (Cajón, Maple, Pallet)
+CREATE TABLE IF NOT EXISTS product_presentations (
+  id INT AUTO_INCREMENT PRIMARY KEY,
+  product_id INT NOT NULL,
+  name VARCHAR(50) NOT NULL,
+  unit_quantity INT NOT NULL,
+  price DECIMAL(10,2) NOT NULL,
+  active TINYINT DEFAULT 1,
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  FOREIGN KEY (product_id) REFERENCES products(id) ON DELETE CASCADE,
+  UNIQUE KEY unique_presentation (product_id, name)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
 -- Create cash_sessions table (debe existir antes que 'sales' por la FK session_id)
 CREATE TABLE IF NOT EXISTS cash_sessions (
   id INT AUTO_INCREMENT PRIMARY KEY,

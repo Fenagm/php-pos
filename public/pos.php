@@ -48,6 +48,7 @@ $user = getCurrentUser();
                         <a href="purchases.php" class="nav-tab nav-tab-inactive">Compras</a>
                         <a href="logistics.php" class="nav-tab nav-tab-inactive">Logística</a>
                         <a href="reports.php" class="nav-tab nav-tab-inactive">Reportes</a>
+                        <a href="mayorista.php" class="nav-tab nav-tab-inactive">Mayorista</a>
                     <?php endif; ?>
                 </nav>
                 <div class="flex items-center gap-4">

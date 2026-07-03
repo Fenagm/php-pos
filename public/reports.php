@@ -49,10 +49,13 @@ if (!hasRole(['admin', 'manager'])) {
                 <nav class="nav-container">
                     <a href="pos.php" class="nav-tab nav-tab-inactive">POS</a>
                     <a href="customers.php" class="nav-tab nav-tab-inactive">Clientes</a>
-                    <a href="inventory.php" class="nav-tab nav-tab-inactive">Inventario</a>
-                    <a href="purchases.php" class="nav-tab nav-tab-inactive">Compras</a>
-                    <a href="logistics.php" class="nav-tab nav-tab-inactive">Logística</a>
-                    <a href="reports.php" class="nav-tab nav-tab-active">Reportes</a>
+                    <?php if ($user['role'] === 'admin' || $user['role'] === 'manager'): ?>
+                        <a href="inventory.php" class="nav-tab nav-tab-inactive">Inventario</a>
+                        <a href="purchases.php" class="nav-tab nav-tab-inactive">Compras</a>
+                        <a href="logistics.php" class="nav-tab nav-tab-inactive">Logística</a>
+                        <a href="reports.php" class="nav-tab nav-tab-active">Reportes</a>
+                        <a href="mayorista.php" class="nav-tab nav-tab-inactive">Mayorista</a>
+                    <?php endif; ?>
                 </nav>
                 <div class="flex items-center gap-4">
                     <div class="hidden sm:flex items-center gap-2 text-white/90">
@@ -80,7 +83,23 @@ if (!hasRole(['admin', 'manager'])) {
             <!-- Filters -->
             <div class="card">
                 <h2 class="text-lg font-semibold mb-4">Filtros</h2>
-                <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
+                <div class="grid grid-cols-1 md:grid-cols-5 gap-4">
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">Sucursal</label>
+                        <select id="branchFilter" class="input-field">
+                            <option value="">Todas las sucursales</option>
+                            <?php if ($user['role'] === 'admin'): ?>
+                                <?php
+                                $db = getDB();
+                                $stmt = $db->query("SELECT id, name FROM branches WHERE active = 1");
+                                $branches = $stmt->fetchAll();
+                                foreach ($branches as $branch):
+                                ?>
+                                    <option value="<?php echo $branch['id']; ?>"><?php echo htmlspecialchars($branch['name']); ?></option>
+                                <?php endforeach; ?>
+                            <?php endif; ?>
+                        </select>
+                    </div>
                     <div>
                         <label class="block text-sm font-medium text-gray-700 mb-2">Fecha Desde</label>
                         <input type="date" id="dateFrom" class="input-field">
@@ -163,12 +182,17 @@ if (!hasRole(['admin', 'manager'])) {
             const dateFrom = document.getElementById('dateFrom').value;
             const dateTo = document.getElementById('dateTo').value;
             const paymentMethod = document.getElementById('paymentMethod').value;
+            const branchId = document.getElementById('branchFilter').value;
 
             const params = new URLSearchParams({
                 dateFrom,
                 dateTo,
                 paymentMethod
             });
+
+            if (branchId) {
+                params.append('branchId', branchId);
+            }
 
             try {
                 const response = await fetch('api/get-reports.php?' + params);

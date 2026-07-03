@@ -24,6 +24,11 @@ try {
     $date = $_GET['date'] ?? date('Y-m-d');
     $status = $_GET['status'] ?? '';
     
+    // Validar parámetro de fecha
+    if (!preg_match('/^\d{4}-\d{2}-\d{2}$/', $date)) {
+        $date = date('Y-m-d');
+    }
+    
     $sql = "
         SELECT d.*, v.name as vehicle_name, b.name as branch_name
         FROM deliveries d
@@ -33,7 +38,9 @@ try {
     ";
     $params = [$date];
     
-    if ($status) {
+    // Solo filtrar por status si se proporcionó un valor válido
+    $validStatuses = ['pending', 'in_transit', 'delivered', 'cancelled'];
+    if (!empty($status) && in_array($status, $validStatuses)) {
         $sql .= " AND d.status = ?";
         $params[] = $status;
     }
@@ -62,6 +69,7 @@ try {
     echo json_encode(['success' => true, 'deliveries' => $deliveries]);
     
 } catch (Exception $e) {
+    error_log("Error en get-deliveries.php: " . $e->getMessage());
     http_response_code(500);
     echo json_encode(['success' => false, 'error' => $e->getMessage()]);
 }

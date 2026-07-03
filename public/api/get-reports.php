@@ -26,6 +26,7 @@ try {
     $dateFrom = $_GET['dateFrom'] ?? date('Y-m-01');
     $dateTo = $_GET['dateTo'] ?? date('Y-m-d');
     $paymentMethod = $_GET['paymentMethod'] ?? null;
+    $branchId = $_GET['branchId'] ?? null;
 
     // Construir consulta de ventas
     $sql = "
@@ -41,7 +42,10 @@ try {
         $params[] = $paymentMethod;
     }
 
-    if ($user['branch_id']) {
+    if ($branchId) {
+        $sql .= " AND s.branch_id = ?";
+        $params[] = $branchId;
+    } elseif ($user['branch_id']) {
         $sql .= " AND (s.branch_id = ? OR s.branch_id IS NULL)";
         $params[] = $user['branch_id'];
     }
@@ -66,7 +70,10 @@ try {
         $itemsParams[] = $paymentMethod;
     }
 
-    if ($user['branch_id']) {
+    if ($branchId) {
+        $itemsSql .= " AND s.branch_id = ?";
+        $itemsParams[] = $branchId;
+    } elseif ($user['branch_id']) {
         $itemsSql .= " AND (s.branch_id = ? OR s.branch_id IS NULL)";
         $itemsParams[] = $user['branch_id'];
     }
