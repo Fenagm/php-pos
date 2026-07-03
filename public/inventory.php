@@ -61,10 +61,13 @@ if ($user['role'] === 'admin') {
                 <nav class="nav-container">
                     <a href="pos.php" class="nav-tab nav-tab-inactive">POS</a>
                     <a href="customers.php" class="nav-tab nav-tab-inactive">Clientes</a>
-                    <a href="inventory.php" class="nav-tab nav-tab-active">Inventario</a>
-                    <a href="purchases.php" class="nav-tab nav-tab-inactive">Compras</a>
-                    <a href="logistics.php" class="nav-tab nav-tab-inactive">Logística</a>
-                    <a href="reports.php" class="nav-tab nav-tab-inactive">Reportes</a>
+                    <?php if ($user['role'] === 'admin' || $user['role'] === 'manager'): ?>
+                        <a href="inventory.php" class="nav-tab nav-tab-active">Inventario</a>
+                        <a href="purchases.php" class="nav-tab nav-tab-inactive">Compras</a>
+                        <a href="logistics.php" class="nav-tab nav-tab-inactive">Logística</a>
+                        <a href="reports.php" class="nav-tab nav-tab-inactive">Reportes</a>
+                        <a href="mayorista.php" class="nav-tab nav-tab-inactive">Mayorista</a>
+                    <?php endif; ?>
                 </nav>
                 <div class="flex items-center gap-4">
                     <?php if ($user['role'] === 'admin'): ?>
