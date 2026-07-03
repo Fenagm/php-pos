@@ -1,0 +1,141 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Design tokens */
+:root {
+  --bg:        #F7F4EE;
+  --surface:   #FFFFFF;
+  --border:    #E7E0D5;
+  --primary:   #B45309;
+  --primary-h: #92400E;
+  --primary-lt:#FEF3C7;
+  --text:      #1C1917;
+  --muted:     #78716C;
+  --success:   #15803D;
+  --danger:    #DC2626;
+  --warning:   #D97706;
+}
+
+/* Base */
+html { font-family: 'Inter', sans-serif; }
+body {
+  background-color: var(--bg);
+  color: var(--text);
+  font-family: 'Inter', sans-serif;
+  -webkit-font-smoothing: antialiased;
+}
+.mono, .price, td.num, [data-mono] {
+  font-family: 'DM Mono', monospace;
+}
+
+/* Buttons */
+.btn-primary {
+  @apply inline-flex items-center justify-center gap-2 px-4 py-2 rounded-lg font-semibold text-sm text-white transition-all focus:outline-none disabled:opacity-40 disabled:cursor-not-allowed;
+  background-color: var(--primary);
+}
+.btn-primary:hover:not(:disabled) { background-color: var(--primary-h); }
+.btn-primary:focus { box-shadow: 0 0 0 2px #fff, 0 0 0 4px var(--primary); }
+
+.btn-danger {
+  @apply inline-flex items-center justify-center gap-2 px-4 py-2 rounded-lg font-semibold text-sm text-white transition-all focus:outline-none disabled:opacity-40 disabled:cursor-not-allowed;
+  background-color: var(--danger);
+}
+.btn-danger:hover:not(:disabled) { background-color: #b91c1c; }
+
+.btn-secondary {
+  @apply inline-flex items-center justify-center gap-2 px-4 py-2 rounded-lg font-medium text-sm transition-all focus:outline-none disabled:opacity-40 disabled:cursor-not-allowed;
+  background-color: var(--border);
+  color: var(--text);
+}
+.btn-secondary:hover:not(:disabled) { background-color: #d6cfc4; }
+
+.btn-success {
+  @apply inline-flex items-center justify-center gap-2 px-4 py-2 rounded-lg font-semibold text-sm text-white transition-all focus:outline-none disabled:opacity-40 disabled:cursor-not-allowed;
+  background-color: var(--success);
+}
+.btn-success:hover:not(:disabled) { background-color: #166534; }
+
+/* Inputs */
+.input-field {
+  @apply w-full rounded-lg px-3 py-2 text-sm transition-all focus:outline-none;
+  border: 1.5px solid var(--border);
+  background: var(--surface);
+  color: var(--text);
+  font-size: 16px;
+}
+@media (min-width: 640px) {
+  .input-field { font-size: 0.875rem; }
+}
+.input-field:focus {
+  border-color: var(--primary);
+  box-shadow: 0 0 0 3px rgba(180, 83, 9, 0.12);
+}
+.input-field::placeholder { color: var(--muted); }
+
+/* Card */
+.card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 1rem;
+  box-shadow: 0 1px 3px rgba(28,25,23,0.06);
+}
+@media (min-width: 640px) {
+  .card { padding: 1.25rem 1.5rem; }
+}
+
+.card-accent {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-left: 4px solid var(--primary);
+  border-radius: 0 12px 12px 0;
+  padding: 0.75rem 1rem;
+  box-shadow: 0 1px 3px rgba(28,25,23,0.06);
+}
+
+/* Navigation tabs */
+.nav-tab {
+  @apply px-3 py-1.5 rounded-md text-sm font-medium transition-all focus:outline-none;
+}
+.nav-tab-active {
+  background-color: var(--primary-lt);
+  color: var(--primary);
+  font-weight: 600;
+}
+.nav-tab-inactive { color: var(--muted); }
+.nav-tab-inactive:hover { background-color: var(--bg); color: var(--text); }
+
+/* Table */
+.table-base { @apply w-full text-sm; }
+.table-base thead { background: var(--bg); }
+.table-base th {
+  @apply px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide;
+  color: var(--muted);
+  border-bottom: 1px solid var(--border);
+}
+.table-base td { @apply px-4 py-3; border-bottom: 1px solid var(--border); }
+.table-base tbody tr:last-child td { border-bottom: none; }
+.table-base tbody tr:hover { background: var(--bg); }
+
+/* Badge */
+.badge { @apply inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium; }
+.badge-amber  { background: var(--primary-lt); color: var(--primary-h); }
+.badge-green  { @apply bg-green-100 text-green-800; }
+.badge-red    { @apply bg-red-100 text-red-700; }
+.badge-gray   { background: var(--border); color: var(--muted); }
+
+/* Modal */
+.modal-backdrop {
+  @apply fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50;
+}
+
+/* Safe area */
+.pb-safe { padding-bottom: env(safe-area-inset-bottom); }
+
+/* Min tap targets for mobile */
+@media (max-width: 639px) {
+  .btn-primary, .btn-danger, .btn-secondary, .btn-success {
+    min-height: 44px;
+  }
+}
