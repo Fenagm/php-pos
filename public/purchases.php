@@ -140,9 +140,27 @@ if (!hasRole(['admin', 'manager'])) {
                     <input type="text" id="purchaseSupplier" class="input-field" required>
                 </div>
                 
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-2">Tipo de Carga *</label>
+                    <div class="flex gap-4">
+                        <label class="flex items-center gap-2">
+                            <input type="radio" name="purchaseType" value="units" checked onchange="togglePurchaseType()">
+                            <span class="text-sm">Unidades (huevos)</span>
+                        </label>
+                        <label class="flex items-center gap-2">
+                            <input type="radio" name="purchaseType" value="pallets" onchange="togglePurchaseType()">
+                            <span class="text-sm">Pallets</span>
+                        </label>
+                        <label class="flex items-center gap-2">
+                            <input type="radio" name="purchaseType" value="crates" onchange="togglePurchaseType()">
+                            <span class="text-sm">Cajones</span>
+                        </label>
+                    </div>
+                </div>
+                
                 <div class="grid grid-cols-2 gap-4">
                     <div>
-                        <label class="block text-sm font-medium text-gray-700 mb-2">Cantidad *</label>
+                        <label class="block text-sm font-medium text-gray-700 mb-2" id="quantityLabel">Cantidad *</label>
                         <input type="number" id="purchaseQuantity" class="input-field" required min="1">
                     </div>
                     <div>
@@ -200,7 +218,21 @@ if (!hasRole(['admin', 'manager'])) {
             const option = select.options[select.selectedIndex];
             const costPrice = option.dataset.cost || 0;
             document.getElementById('purchaseUnitPrice').value = costPrice;
+            togglePurchaseType();
             calculateTotal();
+        }
+
+        function togglePurchaseType() {
+            const purchaseType = document.querySelector('input[name="purchaseType"]:checked')?.value || 'units';
+            const quantityLabel = document.getElementById('quantityLabel');
+            
+            if (purchaseType === 'units') {
+                quantityLabel.textContent = 'Cantidad (huevos) *';
+            } else if (purchaseType === 'pallets') {
+                quantityLabel.textContent = 'Cantidad (pallets) *';
+            } else if (purchaseType === 'crates') {
+                quantityLabel.textContent = 'Cantidad (cajones) *';
+            }
         }
 
         document.getElementById('purchaseQuantity').addEventListener('input', calculateTotal);

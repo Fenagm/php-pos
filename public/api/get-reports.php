@@ -26,6 +26,7 @@ try {
     $dateFrom = $_GET['dateFrom'] ?? date('Y-m-01');
     $dateTo = $_GET['dateTo'] ?? date('Y-m-d');
     $paymentMethod = $_GET['paymentMethod'] ?? null;
+    $consolidated = isset($_GET['consolidated']) && $_GET['consolidated'] === '1';
 
     // Construir consulta de ventas
     $sql = "
@@ -41,7 +42,8 @@ try {
         $params[] = $paymentMethod;
     }
 
-    if ($user['branch_id']) {
+    // Solo filtrar por sucursal si NO es consolidado y el usuario tiene branch_id
+    if (!$consolidated && $user['branch_id']) {
         $sql .= " AND (s.branch_id = ? OR s.branch_id IS NULL)";
         $params[] = $user['branch_id'];
     }
@@ -66,7 +68,8 @@ try {
         $itemsParams[] = $paymentMethod;
     }
 
-    if ($user['branch_id']) {
+    // Solo filtrar por sucursal si NO es consolidado y el usuario tiene branch_id
+    if (!$consolidated && $user['branch_id']) {
         $itemsSql .= " AND (s.branch_id = ? OR s.branch_id IS NULL)";
         $itemsParams[] = $user['branch_id'];
     }

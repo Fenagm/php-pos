@@ -325,7 +325,12 @@ if (!hasRole(['admin', 'manager'])) {
                 const deliveryDate = document.getElementById('filterDeliveryDate').value;
                 const status = document.getElementById('filterStatus').value;
                 
-                const response = await fetch(`api/get-deliveries.php?date=${deliveryDate}&status=${status}`);
+                const params = new URLSearchParams({
+                    date: deliveryDate,
+                    status: status || ''
+                });
+                
+                const response = await fetch(`api/get-deliveries.php?${params.toString()}`);
                 const data = await response.json();
                 
                 if (data.success) {

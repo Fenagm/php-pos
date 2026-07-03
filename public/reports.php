@@ -99,10 +99,16 @@ if (!hasRole(['admin', 'manager'])) {
                             <option value="account">Cuenta Corriente</option>
                         </select>
                     </div>
-                    <div class="flex items-end">
-                        <button onclick="loadReports()" class="btn-primary w-full">
+                    <div class="flex items-end gap-2">
+                        <button onclick="loadReports()" class="btn-primary flex-1">
                             Filtrar
                         </button>
+                        <?php if ($user['role'] === 'admin'): ?>
+                        <label class="flex items-center gap-2 text-sm font-medium text-gray-700 whitespace-nowrap">
+                            <input type="checkbox" id="consolidated" onchange="loadReports()">
+                            Consolidado todas las sedes
+                        </label>
+                        <?php endif; ?>
                     </div>
                 </div>
             </div>
@@ -163,11 +169,13 @@ if (!hasRole(['admin', 'manager'])) {
             const dateFrom = document.getElementById('dateFrom').value;
             const dateTo = document.getElementById('dateTo').value;
             const paymentMethod = document.getElementById('paymentMethod').value;
+            const consolidated = document.getElementById('consolidated')?.checked || false;
 
             const params = new URLSearchParams({
                 dateFrom,
                 dateTo,
-                paymentMethod
+                paymentMethod,
+                consolidated: consolidated ? '1' : '0'
             });
 
             try {
