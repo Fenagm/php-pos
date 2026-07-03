@@ -1,0 +1,391 @@
+/* Modern Design System - Mr Huevos POS */
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Design tokens - Modern gradient theme */
+:root {
+  --primary-50: #eff6ff;
+  --primary-100: #dbeafe;
+  --primary-200: #bfdbfe;
+  --primary-300: #93c5fd;
+  --primary-400: #60a5fa;
+  --primary-500: #3b82f6;
+  --primary-600: #2563eb;
+  --primary-700: #1d4ed8;
+  --primary-800: #1e40af;
+  --primary-900: #1e3a8a;
+  
+  --surface: #ffffff;
+  --surface-elevated: #ffffff;
+  --background: #f8fafc;
+  --border: #e2e8f0;
+  --border-strong: #cbd5e1;
+  
+  --text-primary: #0f172a;
+  --text-secondary: #475569;
+  --text-muted: #94a3b8;
+  
+  --success: #10b981;
+  --success-bg: #ecfdf5;
+  --warning: #f59e0b;
+  --warning-bg: #fffbeb;
+  --danger: #ef4444;
+  --danger-bg: #fef2f2;
+  --info: #3b82f6;
+  --info-bg: #eff6ff;
+}
+
+/* Base */
+html { 
+  font-family: 'Inter', system-ui, -apple-system, sans-serif;
+  scroll-behavior: smooth;
+}
+
+body {
+  background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%);
+  color: var(--text-primary);
+  font-family: 'Inter', sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  line-height: 1.6;
+}
+
+.mono, .price, td.num, [data-mono] {
+  font-family: 'DM Mono', 'JetBrains Mono', monospace;
+}
+
+/* Animated gradient background for header */
+.gradient-header {
+  background: linear-gradient(135deg, var(--primary-600) 0%, var(--primary-800) 100%);
+}
+
+/* Buttons with modern styling */
+.btn-primary {
+  @apply inline-flex items-center justify-center gap-2 px-5 py-2.5 rounded-xl font-semibold text-sm text-white transition-all duration-200 focus:outline-none disabled:opacity-50 disabled:cursor-not-allowed shadow-lg shadow-blue-500/25 hover:shadow-xl hover:shadow-blue-500/30 hover:-translate-y-0.5 active:translate-y-0;
+  background: linear-gradient(135deg, var(--primary-600) 0%, var(--primary-700) 100%);
+}
+
+.btn-primary:hover:not(:disabled) { 
+  background: linear-gradient(135deg, var(--primary-700) 0%, var(--primary-800) 100%);
+}
+
+.btn-primary:focus { 
+  box-shadow: 0 0 0 2px #fff, 0 0 0 4px var(--primary-300); 
+}
+
+.btn-danger {
+  @apply inline-flex items-center justify-center gap-2 px-5 py-2.5 rounded-xl font-semibold text-sm text-white transition-all duration-200 focus:outline-none disabled:opacity-50 disabled:cursor-not-allowed shadow-lg shadow-red-500/25 hover:shadow-xl hover:shadow-red-500/30 hover:-translate-y-0.5 active:translate-y-0;
+  background: linear-gradient(135deg, #dc2626 0%, #b91c1c 100%);
+}
+
+.btn-danger:hover:not(:disabled) { 
+  background: linear-gradient(135deg, #b91c1c 0%, #991b1b 100%); 
+}
+
+.btn-secondary {
+  @apply inline-flex items-center justify-center gap-2 px-5 py-2.5 rounded-xl font-medium text-sm transition-all duration-200 focus:outline-none disabled:opacity-50 disabled:cursor-not-allowed border border-gray-200 hover:border-gray-300 hover:bg-gray-50 active:bg-gray-100;
+  background-color: var(--surface);
+  color: var(--text-secondary);
+}
+
+.btn-success {
+  @apply inline-flex items-center justify-center gap-2 px-5 py-2.5 rounded-xl font-semibold text-sm text-white transition-all duration-200 focus:outline-none disabled:opacity-50 disabled:cursor-not-allowed shadow-lg shadow-green-500/25 hover:shadow-xl hover:shadow-green-500/30 hover:-translate-y-0.5 active:translate-y-0;
+  background: linear-gradient(135deg, var(--success) 0%, #059669 100%);
+}
+
+.btn-success:hover:not(:disabled) { 
+  background: linear-gradient(135deg, #059669 0%, #047857 100%); 
+}
+
+.btn-info {
+  @apply inline-flex items-center justify-center gap-2 px-5 py-2.5 rounded-xl font-semibold text-sm text-white transition-all duration-200 focus:outline-none disabled:opacity-50 disabled:cursor-not-allowed shadow-lg shadow-blue-500/25 hover:shadow-xl hover:shadow-blue-500/30 hover:-translate-y-0.5 active:translate-y-0;
+  background: linear-gradient(135deg, var(--info) 0%, var(--primary-700) 100%);
+}
+
+/* Inputs with modern styling */
+.input-field {
+  @apply w-full rounded-xl px-4 py-2.5 text-sm transition-all duration-200 focus:outline-none border-2;
+  border-color: var(--border);
+  background: var(--surface);
+  color: var(--text-primary);
+  font-size: 16px;
+}
+
+@media (min-width: 640px) {
+  .input-field { font-size: 0.875rem; }
+}
+
+.input-field:focus {
+  border-color: var(--primary-500);
+  box-shadow: 0 0 0 4px rgba(59, 130, 246, 0.1);
+}
+
+.input-field::placeholder { 
+  color: var(--text-muted); 
+}
+
+.input-field:disabled {
+  background-color: #f1f5f9;
+  cursor: not-allowed;
+}
+
+/* Select fields */
+select.input-field {
+  background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3e%3cpath stroke='%236b7280' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='M6 8l4 4 4-4'/%3e%3c/svg%3e");
+  background-position: right 0.5rem center;
+  background-repeat: no-repeat;
+  background-size: 1.5em 1.5em;
+  padding-right: 2.5rem;
+  appearance: none;
+}
+
+/* Card with modern shadows and borders */
+.card {
+  background: var(--surface-elevated);
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  padding: 1.5rem;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05), 0 1px 2px rgba(0, 0, 0, 0.1);
+  transition: all 0.2s ease;
+}
+
+.card:hover {
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05), 0 4px 12px rgba(0, 0, 0, 0.08);
+}
+
+@media (min-width: 640px) {
+  .card { padding: 2rem; }
+}
+
+.card-accent {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-left: 4px solid var(--primary-600);
+  border-radius: 12px;
+  padding: 1rem 1.25rem;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+}
+
+/* Card header variant */
+.card-header {
+  background: linear-gradient(135deg, var(--primary-50) 0%, #fff 100%);
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  padding: 1.5rem;
+  margin-bottom: 1.5rem;
+}
+
+/* Navigation tabs with modern pill design */
+.nav-container {
+  background: #f1f5f9;
+  padding: 0.25rem;
+  border-radius: 12px;
+  display: flex;
+  gap: 0.25rem;
+}
+
+.nav-tab {
+  @apply px-4 py-2 rounded-lg text-sm font-medium transition-all duration-200 focus:outline-none;
+}
+
+.nav-tab-active {
+  background: white;
+  color: var(--primary-700);
+  font-weight: 600;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+}
+
+.nav-tab-inactive { 
+  color: var(--text-secondary);
+}
+
+.nav-tab-inactive:hover { 
+  background-color: rgba(255, 255, 255, 0.5);
+  color: var(--text-primary); 
+}
+
+/* Table with modern styling */
+.table-container {
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  overflow: hidden;
+  background: var(--surface);
+}
+
+.table-base { 
+  @apply w-full text-sm; 
+}
+
+.table-base thead { 
+  background: linear-gradient(180deg, #f8fafc 0%, #f1f5f9 100%);
+}
+
+.table-base th {
+  @apply px-5 py-3.5 text-left text-xs font-semibold uppercase tracking-wider;
+  color: var(--text-secondary);
+  border-bottom: 1px solid var(--border);
+}
+
+.table-base td { 
+  @apply px-5 py-3.5; 
+  border-bottom: 1px solid var(--border);
+  color: var(--text-secondary);
+}
+
+.table-base tbody tr {
+  transition: all 0.15s ease;
+}
+
+.table-base tbody tr:last-child td { 
+  border-bottom: none; 
+}
+
+.table-base tbody tr:hover { 
+  background: linear-gradient(90deg, var(--primary-50) 0%, transparent 100%);
+}
+
+/* Badge with modern pills */
+.badge { 
+  @apply inline-flex items-center px-2.5 py-1 rounded-full text-xs font-semibold;
+}
+
+.badge-blue { 
+  background: var(--info-bg); 
+  color: var(--info); 
+}
+
+.badge-amber { 
+  background: #fef3c7; 
+  color: #92400e; 
+}
+
+.badge-green { 
+  background: var(--success-bg); 
+  color: var(--success); 
+}
+
+.badge-red { 
+  background: var(--danger-bg); 
+  color: var(--danger); 
+}
+
+.badge-gray { 
+  background: #f1f5f9; 
+  color: var(--text-muted); 
+}
+
+.badge-purple {
+  background: #f3e8ff;
+  color: #9333ea;
+}
+
+/* Modal with modern backdrop blur */
+.modal-backdrop {
+  @apply fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4 z-50 transition-all duration-300;
+}
+
+.modal-content {
+  @apply transform transition-all duration-300 scale-100 opacity-100;
+}
+
+.modal-backdrop.hidden .modal-content {
+  transform: scale(0.95);
+  opacity: 0;
+}
+
+/* Safe area */
+.pb-safe { 
+  padding-bottom: env(safe-area-inset-bottom); 
+}
+
+/* Min tap targets for mobile */
+@media (max-width: 639px) {
+  .btn-primary, .btn-danger, .btn-secondary, .btn-success {
+    min-height: 48px;
+  }
+}
+
+/* Custom scrollbar */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: #f1f5f9;
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #cbd5e1;
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #94a3b8;
+}
+
+/* Status indicators */
+.status-dot {
+  @apply inline-block w-2 h-2 rounded-full mr-2;
+}
+
+.status-dot-active {
+  background: var(--success);
+  box-shadow: 0 0 0 2px rgba(16, 185, 129, 0.2);
+}
+
+.status-dot-inactive {
+  background: var(--text-muted);
+  box-shadow: 0 0 0 2px rgba(148, 163, 184, 0.2);
+}
+
+/* Icon buttons */
+.icon-btn {
+  @apply inline-flex items-center justify-center w-9 h-9 rounded-lg transition-all duration-200 focus:outline-none;
+}
+
+.icon-btn-primary {
+  @apply bg-blue-50 text-blue-600 hover:bg-blue-100;
+}
+
+.icon-btn-danger {
+  @apply bg-red-50 text-red-600 hover:bg-red-100;
+}
+
+.icon-btn-success {
+  @apply bg-green-50 text-green-600 hover:bg-green-100;
+}
+
+/* Empty state */
+.empty-state {
+  @apply text-center py-12;
+}
+
+.empty-state-icon {
+  @apply mx-auto w-16 h-16 rounded-full bg-gray-100 flex items-center justify-center mb-4;
+}
+
+/* Loading skeleton */
+.skeleton {
+  @apply animate-pulse bg-gray-200 rounded;
+}
+
+/* Toast notifications */
+.toast {
+  @apply fixed bottom-4 right-4 px-6 py-3 rounded-xl shadow-lg text-white font-medium transform transition-all duration-300 translate-y-0 opacity-100;
+}
+
+.toast-success {
+  background: linear-gradient(135deg, var(--success) 0%, #059669 100%);
+}
+
+.toast-error {
+  background: linear-gradient(135deg, var(--danger) 0%, #b91c1c 100%);
+}
+
+.toast-warning {
+  background: linear-gradient(135deg, var(--warning) 0%, #d97706 100%);
+}
