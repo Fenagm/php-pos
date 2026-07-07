@@ -29,7 +29,12 @@ try {
     // contra un número y nunca matchea el vehículo a editar.
     $vehicles = array_map(function($v) {
         $v['id'] = intval($v['id']);
-        $v['capacity'] = intval($v['capacity']);
+        $v['capacity_cajones'] = isset($v['capacity_cajones']) ? intval($v['capacity_cajones']) : 0;
+        $v['capacity_pallets'] = isset($v['capacity_pallets']) ? intval($v['capacity_pallets']) : 0;
+        // Mantener compatibilidad con capacity si existe
+        $v['capacity'] = isset($v['capacity']) ? intval($v['capacity']) : 0;
+        $v['current_cajones'] = isset($v['current_cajones']) ? intval($v['current_cajones']) : 0;
+        $v['current_pallets'] = isset($v['current_pallets']) ? intval($v['current_pallets']) : 0;
         $v['active'] = (bool)$v['active'];
         return $v;
     }, $vehicles);

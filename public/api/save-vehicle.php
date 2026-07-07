@@ -1,6 +1,6 @@
 <?php
 /**
- * API: Guardar vehículo
+ * API: Guardar vehículo (con capacidad en cajones y pallets)
  * Mr Huevos POS - PHP Version
  */
 
@@ -37,7 +37,8 @@ try {
     $id = $data['id'] ?? null;
     $name = trim($data['name'] ?? '');
     $licensePlate = trim($data['licensePlate'] ?? '');
-    $capacity = intval($data['capacity'] ?? 0);
+    $capacityCajones = intval($data['capacityCajones'] ?? 0);
+    $capacityPallets = intval($data['capacityPallets'] ?? 0);
     $active = isset($data['active']) ? (bool)$data['active'] : true;
     
     if (empty($name)) {
@@ -49,19 +50,33 @@ try {
     if ($id) {
         $stmt = $db->prepare("
             UPDATE vehicles 
-            SET name = ?, license_plate = ?, capacity = ?, active = ?
+            SET name = ?, 
+                license_plate = ?, 
+                capacity_cajones = ?, 
+                capacity_pallets = ?,
+                active = ?
             WHERE id = ?
         ");
-        $stmt->execute([$name, $licensePlate, $capacity, $active ? 1 : 0, $id]);
+        $stmt->execute([$name, $licensePlate, $capacityCajones, $capacityPallets, $active ? 1 : 0, $id]);
     } else {
         $stmt = $db->prepare("
-            INSERT INTO vehicles (name, license_plate, capacity, active)
-            VALUES (?, ?, ?, ?)
+            INSERT INTO vehicles (name, license_plate, capacity_cajones, capacity_pallets, active)
+            VALUES (?, ?, ?, ?, ?)
         ");
-        $stmt->execute([$name, $licensePlate, $capacity, $active ? 1 : 0]);
+        $stmt->execute([$name, $licensePlate, $capacityCajones, $capacityPallets, $active ? 1 : 0]);
     }
     
-    echo json_encode(['success' => true]);
+    echo json_encode([
+        'success' => true,
+        'vehicle' => [
+            'id' => $id,
+            'name' => $name,
+            'license_plate' => $licensePlate,
+            'capacity_cajones' => $capacityCajones,
+            'capacity_pallets' => $capacityPallets,
+            'active' => $active
+        ]
+    ]);
     
 } catch (Exception $e) {
     http_response_code(500);

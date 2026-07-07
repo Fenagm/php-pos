@@ -1,6 +1,6 @@
 <?php
 /**
- * API: Obtener reportes de ventas
+ * API: Obtener reportes de ventas y gastos
  * Mr Huevos POS - PHP Version
  */
 
@@ -21,82 +21,134 @@ if (!isAuthenticated()) {
 try {
     $db = getDB();
     $user = getCurrentUser();
-
-    // Obtener parámetros de filtro
-    $dateFrom = $_GET['dateFrom'] ?? date('Y-m-01');
-    $dateTo = $_GET['dateTo'] ?? date('Y-m-d');
-    $paymentMethod = $_GET['paymentMethod'] ?? null;
-    $branchId = $_GET['branchId'] ?? null;
-
-    // Construir consulta de ventas
-    $sql = "
-        SELECT s.*, u.username
-        FROM sales s
-        LEFT JOIN users u ON s.user_id = u.id
-        WHERE DATE(s.created_at) BETWEEN ? AND ?
-    ";
-    $params = [$dateFrom, $dateTo];
-
-    if ($paymentMethod) {
-        $sql .= " AND s.payment_method = ?";
+    $userRole = $user['role'] ?? 'seller';
+    $userBranchId = $user['branch_id'] ?? null;
+    
+    // Obtener parámetros
+    $dateFrom = isset($_GET['dateFrom']) ? $_GET['dateFrom'] : date('Y-m-01');
+    $dateTo = isset($_GET['dateTo']) ? $_GET['dateTo'] : date('Y-m-d');
+    $paymentMethod = isset($_GET['paymentMethod']) ? $_GET['paymentMethod'] : '';
+    $branchId = isset($_GET['branchId']) ? (int)$_GET['branchId'] : null;
+    
+    // Validar fechas
+    if (!preg_match('/^\d{4}-\d{2}-\d{2}$/', $dateFrom)) {
+        $dateFrom = date('Y-m-01');
+    }
+    if (!preg_match('/^\d{4}-\d{2}-\d{2}$/', $dateTo)) {
+        $dateTo = date('Y-m-d');
+    }
+    
+    // ============================================
+    // 1. OBTENER VENTAS
+    // ============================================
+    $salesSql = "SELECT 
+                    s.id,
+                    s.total,
+                    s.payment_method,
+                    s.created_at,
+                    s.customer_name,
+                    u.username,
+                    b.name as branch_name,
+                    s.branch_id
+                FROM sales s
+                LEFT JOIN users u ON s.user_id = u.id
+                LEFT JOIN branches b ON s.branch_id = b.id
+                WHERE s.created_at BETWEEN ? AND ?";
+    
+    $params = [$dateFrom . ' 00:00:00', $dateTo . ' 23:59:59'];
+    
+    // Filtrar por método de pago
+    if (!empty($paymentMethod)) {
+        $salesSql .= " AND s.payment_method = ?";
         $params[] = $paymentMethod;
     }
-
-    if ($branchId) {
-        $sql .= " AND s.branch_id = ?";
-        $params[] = $branchId;
-    } elseif ($user['branch_id']) {
-        $sql .= " AND (s.branch_id = ? OR s.branch_id IS NULL)";
-        $params[] = $user['branch_id'];
-    }
-
-    $sql .= " ORDER BY s.created_at DESC";
-
-    $stmt = $db->prepare($sql);
-    $stmt->execute($params);
-    $sales = $stmt->fetchAll();
-
-    // Obtener totales de items
-    $itemsSql = "
-        SELECT COALESCE(SUM(si.quantity), 0) as total_items
-        FROM sale_items si
-        INNER JOIN sales s ON si.sale_id = s.id
-        WHERE DATE(s.created_at) BETWEEN ? AND ?
-    ";
-    $itemsParams = [$dateFrom, $dateTo];
     
-    if ($paymentMethod) {
-        $itemsSql .= " AND s.payment_method = ?";
-        $itemsParams[] = $paymentMethod;
+    // Filtrar por sucursal
+    if ($branchId > 0) {
+        $salesSql .= " AND s.branch_id = ?";
+        $params[] = $branchId;
+    } elseif ($userRole !== 'admin' && $userBranchId) {
+        $salesSql .= " AND s.branch_id = ?";
+        $params[] = $userBranchId;
     }
-
-    if ($branchId) {
-        $itemsSql .= " AND s.branch_id = ?";
-        $itemsParams[] = $branchId;
-    } elseif ($user['branch_id']) {
-        $itemsSql .= " AND (s.branch_id = ? OR s.branch_id IS NULL)";
-        $itemsParams[] = $user['branch_id'];
+    
+    $salesSql .= " ORDER BY s.created_at DESC";
+    
+    $stmt = $db->prepare($salesSql);
+    $stmt->execute($params);
+    $sales = $stmt->fetchAll(PDO::FETCH_ASSOC);
+    
+    // ============================================
+    // 2. OBTENER GASTOS (COMPRAS)
+    // ============================================
+    $expensesSql = "SELECT 
+                        p.id,
+                        p.product_name,
+                        p.supplier,
+                        p.quantity,
+                        p.unit_price,
+                        p.total_price,
+                        p.created_at,
+                        b.name as branch_name,
+                        p.branch_id
+                    FROM purchases p
+                    LEFT JOIN branches b ON p.branch_id = b.id
+                    WHERE p.created_at BETWEEN ? AND ?";
+    
+    $expensesParams = [$dateFrom . ' 00:00:00', $dateTo . ' 23:59:59'];
+    
+    // Filtrar por sucursal
+    if ($branchId > 0) {
+        $expensesSql .= " AND p.branch_id = ?";
+        $expensesParams[] = $branchId;
+    } elseif ($userRole !== 'admin' && $userBranchId) {
+        $expensesSql .= " AND p.branch_id = ?";
+        $expensesParams[] = $userBranchId;
     }
-
-    $stmt = $db->prepare($itemsSql);
-    $stmt->execute($itemsParams);
-    $totalItems = $stmt->fetch()['total_items'];
-
-    // Calcular resumen
+    
+    $expensesSql .= " ORDER BY p.created_at DESC";
+    
+    $stmt = $db->prepare($expensesSql);
+    $stmt->execute($expensesParams);
+    $expenses = $stmt->fetchAll(PDO::FETCH_ASSOC);
+    
+    // ============================================
+    // 3. CALCULAR RESUMEN
+    // ============================================
     $totalSales = array_sum(array_column($sales, 'total'));
+    $totalExpenses = array_sum(array_column($expenses, 'total_price'));
+    
     $summary = [
         'totalSales' => $totalSales,
-        'totalTransactions' => count($sales),
-        'totalItems' => intval($totalItems)
+        'totalExpenses' => $totalExpenses,
+        'totalTransactions' => count($sales)
     ];
-
+    
     echo json_encode([
         'success' => true,
         'sales' => $sales,
-        'summary' => $summary
+        'expenses' => $expenses,
+        'summary' => $summary,
+        'filters' => [
+            'dateFrom' => $dateFrom,
+            'dateTo' => $dateTo,
+            'paymentMethod' => $paymentMethod,
+            'branchId' => $branchId
+        ]
     ]);
-
-} catch (Exception $e) {
+    
+} catch (PDOException $e) {
+    error_log("PDO Error en get-reports.php: " . $e->getMessage());
     http_response_code(500);
-    echo json_encode(['success' => false, 'error' => $e->getMessage()]);
+    echo json_encode([
+        'success' => false,
+        'error' => 'Error de base de datos: ' . $e->getMessage()
+    ]);
+} catch (Exception $e) {
+    error_log("Error en get-reports.php: " . $e->getMessage());
+    http_response_code(500);
+    echo json_encode([
+        'success' => false,
+        'error' => 'Error: ' . $e->getMessage()
+    ]);
 }

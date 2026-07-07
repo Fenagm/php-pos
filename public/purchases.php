@@ -143,15 +143,28 @@ if (!hasRole(['admin', 'manager'])) {
                     <input type="text" id="purchaseSupplier" class="input-field" required>
                 </div>
                 
-                <div class="grid grid-cols-2 gap-4">
+                <div class="grid grid-cols-3 gap-4">
                     <div>
                         <label class="block text-sm font-medium text-gray-700 mb-2">Cantidad *</label>
                         <input type="number" id="purchaseQuantity" class="input-field" required min="1">
                     </div>
                     <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">Unidad</label>
+                        <select id="purchaseUnit" class="input-field">
+                            <option value="unit">Unidad</option>
+                            <option value="cajon">Cajón (360u)</option>
+                            <option value="maple">Maple (30u)</option>
+                            <option value="pallet">Pallet (14400u)</option>
+                        </select>
+                    </div>
+                    <div>
                         <label class="block text-sm font-medium text-gray-700 mb-2">Precio Unitario *</label>
                         <input type="number" id="purchaseUnitPrice" class="input-field" step="0.01" required min="0">
                     </div>
+                </div>
+                
+                <div id="purchaseTotalUnitsDisplay" class="text-sm text-gray-600 hidden">
+                    <span class="font-medium">Total:</span> <span id="purchaseTotalUnits">0</span> huevos
                 </div>
                 
                 <div>
@@ -204,10 +217,42 @@ if (!hasRole(['admin', 'manager'])) {
             const costPrice = option.dataset.cost || 0;
             document.getElementById('purchaseUnitPrice').value = costPrice;
             calculateTotal();
+            updateTotalUnitsDisplay();
         }
 
-        document.getElementById('purchaseQuantity').addEventListener('input', calculateTotal);
+        document.getElementById('purchaseQuantity').addEventListener('input', () => {
+            calculateTotal();
+            updateTotalUnitsDisplay();
+        });
         document.getElementById('purchaseUnitPrice').addEventListener('input', calculateTotal);
+        document.getElementById('purchaseUnit').addEventListener('change', () => {
+            calculateTotal();
+            updateTotalUnitsDisplay();
+        });
+
+        function getUnitMultiplier() {
+            const unit = document.getElementById('purchaseUnit').value;
+            switch(unit) {
+                case 'cajon': return 360;
+                case 'maple': return 30;
+                case 'pallet': return 14400;
+                default: return 1;
+            }
+        }
+
+        function updateTotalUnitsDisplay() {
+            const quantity = parseInt(document.getElementById('purchaseQuantity').value) || 0;
+            const multiplier = getUnitMultiplier();
+            const totalUnits = quantity * multiplier;
+            
+            const display = document.getElementById('purchaseTotalUnitsDisplay');
+            if (multiplier > 1) {
+                document.getElementById('purchaseTotalUnits').textContent = totalUnits;
+                display.classList.remove('hidden');
+            } else {
+                display.classList.add('hidden');
+            }
+        }
 
         function calculateTotal() {
             const quantity = parseFloat(document.getElementById('purchaseQuantity').value) || 0;
@@ -269,12 +314,21 @@ if (!hasRole(['admin', 'manager'])) {
         async function savePurchase(event) {
             event.preventDefault();
 
+            const unit = document.getElementById('purchaseUnit').value;
+            let quantity = parseInt(document.getElementById('purchaseQuantity').value) || 0;
+            
+            // Convertir a unidades reales (huevos)
+            const multiplier = getUnitMultiplier();
+            const realQuantity = quantity * multiplier;
+
             const purchaseData = {
                 productId: document.getElementById('purchaseProduct').value,
                 productName: document.getElementById('purchaseProduct').options[document.getElementById('purchaseProduct').selectedIndex]?.text || '',
                 supplier: document.getElementById('purchaseSupplier').value.trim(),
-                quantity: parseInt(document.getElementById('purchaseQuantity').value),
-                unitPrice: parseFloat(document.getElementById('purchaseUnitPrice').value)
+                quantity: realQuantity, // cantidad en huevos
+                unitPrice: parseFloat(document.getElementById('purchaseUnitPrice').value),
+                unitType: unit, // para registro
+                originalQuantity: quantity // cantidad original según unidad
             };
 
             if (!purchaseData.productId) {
@@ -297,7 +351,7 @@ if (!hasRole(['admin', 'manager'])) {
                 const data = await response.json();
 
                 if (data.success) {
-                    alert('Compra registrada exitosamente');
+                    alert('Compra registrada exitosamente (' + realQuantity + ' huevos)');
                     closePurchaseModal();
                     loadPurchases();
                 } else {
